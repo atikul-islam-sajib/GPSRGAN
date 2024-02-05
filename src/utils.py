@@ -12,6 +12,6 @@ def total_trainable_params(model):
     int
         Total number of trainable parameters.
     """
-    total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    total_params = sum(p.numel() for p in model.parameters())
 
     return total_params
