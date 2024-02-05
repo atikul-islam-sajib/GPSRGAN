@@ -17,6 +17,40 @@ logging.basicConfig(
 
 
 class Loader:
+    """
+    Loader class for creating a dataloader for the MNIST dataset.
+
+    Parameters
+    ----------
+    batch_size : int, optional
+        The batch size for the dataloader. Default is 64.
+    num_samples : int, optional
+        The number of samples to use from the MNIST dataset. Default is 1000.
+    image_height : int, optional
+        The height of the resized images. Default is 64.
+    image_width : int, optional
+        The width of the resized images. Default is 64.
+
+    Methods
+    -------
+    download_mnist()
+        Downloads the MNIST dataset, applies transformations, and returns a subset.
+
+    create_dataloader(subset_dataset)
+        Creates and saves a dataloader for the provided subset using joblib.
+
+    Examples
+    --------
+    # Instantiate the Loader class
+    loader = Loader(batch_size=64, num_samples=1000, image_height=64, image_width=64)
+
+    # Download the MNIST dataset
+    subset_dataset = loader.download_mnist()
+
+    # Create and save the dataloader
+    loader.create_dataloader(subset_dataset=subset_dataset)
+    """
+
     def __init__(
         self, batch_size=64, num_samples=1000, image_height=64, image_width=64
     ):
@@ -26,6 +60,14 @@ class Loader:
         self.image_width = 64
 
     def download_mnist(self):
+        """
+        Downloads the MNIST dataset, applies transformations, and returns a subset.
+
+        Returns
+        -------
+        subset_dataset : Subset
+            Subset of the MNIST dataset.
+        """
         transform = transforms.Compose(
             [
                 transforms.Resize((self.image_height, self.image_width)),
@@ -45,6 +87,23 @@ class Loader:
         return subset_dataset
 
     def create_dataloader(self, subset_dataset=None):
+        """
+        Creates and saves a dataloader for the provided subset using joblib.
+
+        Parameters
+        ----------
+        subset_dataset : Subset, optional
+            Subset of the MNIST dataset.
+
+        Raises
+        ------
+        Exception
+            If subset_dataset is not provided.
+
+        Notes
+        -----
+        The dataloader is saved as a pickle file in the "./data/processed/" directory.
+        """
         if subset_dataset is not None:
             dataloader = DataLoader(
                 dataset=subset_dataset, batch_size=self.batch_size, shuffle=True
