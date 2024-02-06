@@ -121,6 +121,7 @@ class Loader:
             self.lr_images.append(image)
 
         # Convert list into NumPy
+        length = len(self.lr_images)
         self.lr_images = np.array(self.lr_images).astype(np.float32) / 255.0
         self.lr_images = self.lr_images.reshape(
             -1, self.in_channels, self.image_height, self.image_width
