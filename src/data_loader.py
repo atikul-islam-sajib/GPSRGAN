@@ -1,6 +1,9 @@
 import sys
 import logging
 import argparse
+import os
+import cv2
+import numpy as np
 import joblib as pickle
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Subset
@@ -58,6 +61,8 @@ class Loader:
         self.num_samples = num_samples
         self.image_height = 64
         self.image_width = 64
+        self.in_channels = 1
+        self.lr_images = list()
 
     def download_mnist(self):
         """
@@ -85,6 +90,43 @@ class Loader:
         subset_dataset = Subset(full_dataset, subset_indices)
 
         return subset_dataset
+
+    def download_div2k(self):
+        """
+        Loads and processes low-resolution images from the DIV2K dataset.
+
+        This method reads low-resolution images from a specified directory,
+        resizes them to the dimensions defined in the instance (self.image_height, self.image_width),
+        and appends them to the instance's lr_images list. The images are then converted to a NumPy array,
+        normalized (pixel values are divided by 255 to bring them into the range [0,1]),
+        and reshaped to the format expected by the model (batch_size, channels, height, width).
+
+        The method assumes that the low-resolution images are stored in a subdirectory './data/low'
+        relative to the current working directory.
+
+        Returns:
+            numpy.ndarray: A 4D NumPy array containing the processed low-resolution images,
+                        with shape (num_images, 1, self.image_height, self.image_width).
+
+        Notes:
+            - The method updates self.lr_images with the processed images.
+            - The images are read in grayscale mode.
+            - This method does not perform error handling for file reading.
+            Ensure that the specified directory contains only valid image files.
+        """
+        lr_image_path = os.path.join("./data/low")
+        for image in os.listdir(lr_image_path):
+            image = cv2.imread(os.path.join(lr_image_path, image), cv2.IMREAD_GRAYSCALE)
+            image = cv2.resize(image, (self.image_height, self.image_width))
+            self.lr_images.append(image)
+
+        # Convert list into NumPy
+        self.lr_images = np.array(self.lr_images).astype(np.float32) / 255.0
+        self.lr_images = self.lr_images.reshape(
+            -1, self.in_channels, self.image_height, self.image_width
+        )
+
+        return self.lr_images
 
     def create_dataloader(self, subset_dataset=None):
         """
@@ -140,6 +182,11 @@ if __name__ == "__main__":
         default=1000,
         help="Number of samples to use".capitalize(),
     )
+    parser.add_argument(
+        "--download_div2k",
+        action="store_true",
+        help="Download the mnist dataset".capitalize(),
+    )
 
     args = parser.parse_args()
 
@@ -161,5 +208,22 @@ if __name__ == "__main__":
             logging.info(
                 "Please provide the batch size and the number of samples".capitalize()
             )
-    else:
-        logging.exception("Please download the mnist dataset".capitalize())
+
+    if args.download_div2k:
+        if args.batch_size and args.subset_samples:
+            logging.info("Downloading the mnist dataset...".capitalize())
+
+            loader = Loader(
+                batch_size=args.batch_size,
+                num_samples=args.subset_samples,
+                image_height=64,
+                image_width=64,
+            )
+            subset_dataset = loader.download_div2k()
+            loader.create_dataloader(subset_dataset=subset_dataset)
+
+            logging.info("Dataloader created successfully".capitalize())
+        else:
+            logging.info(
+                "Please provide the batch size and the number of samples".capitalize()
+            )
